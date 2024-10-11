@@ -11,7 +11,7 @@ export const UseTypeOrmModule = TypeOrmModule.forRootAsync({
         password: configService.get<string>('db.password'),
         database: configService.get<string>('db.database'),
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: false,
       }),
       inject: [ConfigService],
   })

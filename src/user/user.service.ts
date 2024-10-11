@@ -4,6 +4,7 @@ import { Users } from './user.entity';
 import { Repository, In, Like } from "typeorm";
 import { CreateUserDto } from './user.dto';
 import { plainToInstance } from "class-transformer";
+import { RegisterDto } from 'src/auth/auth.dto';
 @Injectable()
 export class UserService {
     constructor(
@@ -11,11 +12,9 @@ export class UserService {
         private usersRepository: Repository<Users>
     ) { }
 
-    async create(dataUserNew: CreateUserDto) {
+    async create(dataUserNew: RegisterDto) {
         const newUser = await this.usersRepository.create(dataUserNew)
         await this.usersRepository.save(newUser)
-        console.log("đã tạo thành công người dùng");
-        console.log(newUser);
         return newUser
     }
 

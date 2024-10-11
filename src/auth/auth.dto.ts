@@ -1,11 +1,27 @@
 
 import { PartialType, OmitType, PickType } from '@nestjs/mapped-types'
+import { Expose, Transform } from 'class-transformer';
 import { IsString, IsEmail, IsInt, IsNotEmpty } from 'class-validator';
 
 export class RegisterDto {
-    account: string;
-    password: string;
-    email: string;
-  }
+  @Expose()
+  @IsString()
+  account: string;
 
-  export class RegisterResponseDto extends PickType(RegisterDto, ['account'] as const) {}
+  @Expose()
+  @IsNotEmpty()
+  @IsString()
+  password: string;
+
+  @Expose()
+  @IsEmail()
+  email: string;
+}
+
+export class RegisterResponseDto extends OmitType(RegisterDto, ['password'] as const) { }
+
+export class ConfirmOtpDto extends PickType(RegisterDto,['email'] as const) {
+  @Expose()
+  @IsString()
+  OTP: string;
+}
