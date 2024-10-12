@@ -15,15 +15,21 @@ import {
   Get,
   Query,
 } from "@nestjs/common";
-import { RegisterDto, RegisterResponseDto, ConfirmOtpDto } from "./auth.dto";
+import { RegisterDto, RegisterResponseDto, ConfirmOtpDto, LoginDto } from "./auth.dto";
 import { UserService } from 'src/user/user.service';
 import { AuthService } from "./auth.service";
+import { log } from "console";
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService
   ) { }
+
+  @Post('login')
+  async Login(@Body() data: LoginDto) {
+    return await this.authService.userLogin(data)
+  }
 
   @Post('register')
   async register(@Body() data: RegisterDto): Promise<RegisterResponseDto> {

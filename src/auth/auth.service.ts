@@ -2,12 +2,12 @@ import { Injectable, HttpException, HttpStatus, Inject, UnauthorizedException } 
 import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt';
 import { plainToInstance } from "class-transformer";
-import { RegisterDto, RegisterResponseDto, ConfirmOtpDto } from './auth.dto';
+import { RegisterDto, RegisterResponseDto, ConfirmOtpDto,LoginDto } from './auth.dto';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import * as crypto from 'crypto'; // Sử dụng để sinh OTP
 import { MailerService } from 'src/mailer/mailer.service';
-import { CreateUserDto } from 'src/user/user.dto';
+import { BasicUserDataDto } from 'src/user/user.dto';
 @Injectable()
 export class AuthService {
     constructor(
@@ -15,6 +15,22 @@ export class AuthService {
         private readonly mailerService: MailerService,
         @Inject(CACHE_MANAGER) private cacheManager: Cache
     ) { }
+
+
+    async userLogin(loginData: LoginDto) {
+        console.log(loginData);
+        const userData = await this.usersService.getByAccount(loginData.account)
+        console.log(userData);
+        
+        const isPasswordMatching = await bcrypt.compare(
+            loginData.password,
+            userData?.password || 'null'
+          );
+          if (!isPasswordMatching || userData === null) {
+            throw new UnauthorizedException();
+          }
+          return userData
+    }
 
     async verifyOTP(dataOTP: ConfirmOtpDto): Promise<RegisterResponseDto> {
         try {

@@ -25,3 +25,5 @@ export class ConfirmOtpDto extends PickType(RegisterDto,['email'] as const) {
   @IsString()
   OTP: string;
 }
+
+export class LoginDto extends OmitType(RegisterDto, ['email' ] as const) { }

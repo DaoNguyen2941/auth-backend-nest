@@ -2,7 +2,7 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Users } from './user.entity';
 import { Repository, In, Like } from "typeorm";
-import { CreateUserDto } from './user.dto';
+import { BasicUserDataDto } from './user.dto';
 import { plainToInstance } from "class-transformer";
 import { RegisterDto } from 'src/auth/auth.dto';
 import { QueryFailedError } from 'typeorm';
@@ -43,18 +43,21 @@ export class UserService {
 
     }
 
-    async getByAccount(accountName: string) {
+    async getByAccount(accountName: string):Promise<BasicUserDataDto> {
         try {
             const account = await this.usersRepository.findOne({
                 where: { account: accountName },
                 select: {
                     id: true,
                     account: true,
-                    email: true
+                    email: true,
+                    password: true
                 }
             });
+            return plainToInstance(BasicUserDataDto, account, {
+                excludeExtraneousValues: true,
+            })
 
-            return account;
         } catch (error) {
             // Kiểm tra nếu lỗi là do truy vấn cơ sở dữ liệu
             if (error instanceof QueryFailedError) {
