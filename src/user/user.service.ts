@@ -5,6 +5,8 @@ import { Repository, In, Like } from "typeorm";
 import { CreateUserDto } from './user.dto';
 import { plainToInstance } from "class-transformer";
 import { RegisterDto } from 'src/auth/auth.dto';
+import { QueryFailedError } from 'typeorm';
+
 @Injectable()
 export class UserService {
     constructor(
@@ -13,21 +15,59 @@ export class UserService {
     ) { }
 
     async create(dataUserNew: RegisterDto) {
-        const newUser = await this.usersRepository.create(dataUserNew)
-        await this.usersRepository.save(newUser)
-        return newUser
+        try {
+            const newUser = await this.usersRepository.create(dataUserNew)
+            await this.usersRepository.save(newUser)
+            return newUser
+        } catch (error) {
+            // Kiểm tra nếu lỗi là do truy vấn cơ sở dữ liệu
+            if (error instanceof QueryFailedError) {                
+                // Kiểm tra lỗi cụ thể, lỗi trùng lặp
+                if ((error as any).driverError.errno == '1062') { // 23505 là mã lỗi trùng lặp
+                    throw new HttpException(
+                        'Tên ài khoản đã tồn tại hoạc email đã đang ký. Hãy chọn thông tin khác.',
+                        HttpStatus.CONFLICT
+                    );
+                }
+                throw new HttpException(
+                    'Lỗi truy vấn cơ sở dữ liệu',
+                    HttpStatus.INTERNAL_SERVER_ERROR
+                );
+            }
+            // Xử lý các lỗi không xác định khác
+            throw new HttpException(
+                'Đã xảy ra lỗi không xác định',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+
     }
 
     async getByAccount(accountName: string) {
-        const account = await this.usersRepository.findOne({
-            where: { account: accountName },
-            select: {
-                id: true,
-                account: true,
-                email: true
+        try {
+            const account = await this.usersRepository.findOne({
+                where: { account: accountName },
+                select: {
+                    id: true,
+                    account: true,
+                    email: true
+                }
+            });
+
+            return account;
+        } catch (error) {
+            // Kiểm tra nếu lỗi là do truy vấn cơ sở dữ liệu
+            if (error instanceof QueryFailedError) {
+                throw new HttpException(
+                    'Lỗi truy vấn cơ sở dữ liệu',
+                    HttpStatus.INTERNAL_SERVER_ERROR
+                );
             }
-        })
-        return account;
+            // Ném lại các lỗi khác (ví dụ lỗi HttpException)
+            throw new HttpException(
+                'Đã xảy ra lỗi không xác định',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
     }
 }
- 

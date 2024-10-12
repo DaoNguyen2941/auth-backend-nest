@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { createTransport } from 'nodemailer';
 import * as Mail from 'nodemailer/lib/mailer';
 import { ConfigService } from '@nestjs/config';
@@ -18,8 +18,23 @@ export class MailerService {
         })
     }
 
-    sendMail(options: Mail.Options) {
-        return this.nodemailerTransport.sendMail(options);
-      }
-      
+    async sendMail(options: Mail.Options) {
+        try {
+            await this.nodemailerTransport.sendMail(options);
+        } catch (error) {
+            // Kiểm tra lỗi có phải do nodemailer không
+            if (error.response) {
+                // Nếu có phản hồi từ server mail
+                throw new HttpException(
+                    `Lỗi gửi email: ${error.response}`,
+                    HttpStatus.INTERNAL_SERVER_ERROR
+                );
+            }
+            // Nếu không có phản hồi rõ ràng, ném ra lỗi chung
+            throw new HttpException(
+                'Đã xảy ra lỗi không xác định khi gửi email.',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
 }
