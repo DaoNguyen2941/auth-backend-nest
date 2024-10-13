@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { UseConfigModule } from './core/Configuration/configModule';
 import { UseTypeOrmModule } from './core/database/dataSource';
 import { UserModule } from './user/user.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { MailerModule } from 'src/mailer/mailer.module';
-
-
+import { AuthGuard } from './auth/guard/auth.guard';
+import { JwtModule } from '@nestjs/jwt';
+import { jwtConstants } from './auth/constants';
 @Module({
   imports: [
     UseConfigModule,
@@ -20,8 +20,16 @@ import { MailerModule } from 'src/mailer/mailer.module';
     AuthModule,
     MailerModule,
     UserModule,
+    JwtModule.register({
+      global: true,
+      secret: jwtConstants.secret,
+      signOptions: { expiresIn: '900s' },
+    }),
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [{
+    provide: APP_GUARD,
+    useClass: AuthGuard,
+  },],
 })
-export class AppModule {}
+export class AppModule { }

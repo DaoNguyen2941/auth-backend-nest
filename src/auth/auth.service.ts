@@ -2,34 +2,39 @@ import { Injectable, HttpException, HttpStatus, Inject, UnauthorizedException } 
 import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt';
 import { plainToInstance } from "class-transformer";
-import { RegisterDto, RegisterResponseDto, ConfirmOtpDto,LoginDto } from './auth.dto';
+import { RegisterDto, RegisterResponseDto, ConfirmOtpDto, LoginDto } from './auth.dto';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import * as crypto from 'crypto'; // Sử dụng để sinh OTP
 import { MailerService } from 'src/mailer/mailer.service';
+import { JwtService } from '@nestjs/jwt';
 import { BasicUserDataDto } from 'src/user/user.dto';
 @Injectable()
 export class AuthService {
     constructor(
         private readonly usersService: UserService,
         private readonly mailerService: MailerService,
+        private jwtService: JwtService,
         @Inject(CACHE_MANAGER) private cacheManager: Cache
     ) { }
 
 
     async userLogin(loginData: LoginDto) {
-        console.log(loginData);
-        const userData = await this.usersService.getByAccount(loginData.account)
-        console.log(userData);
-        
+        const userData: BasicUserDataDto = await this.usersService.getByAccount(loginData.account)
+
         const isPasswordMatching = await bcrypt.compare(
             loginData.password,
             userData?.password || 'null'
-          );
-          if (!isPasswordMatching || userData === null) {
+        );
+        if (!isPasswordMatching || userData === null) {
             throw new UnauthorizedException();
-          }
-          return userData
+        }
+        const payload = { sub: userData.id };
+        console.log(process.env.SECRET_JWT);
+        
+        return {
+            access_token: await this.jwtService.signAsync(payload),
+        };
     }
 
     async verifyOTP(dataOTP: ConfirmOtpDto): Promise<RegisterResponseDto> {
@@ -128,7 +133,7 @@ export class AuthService {
 
 
     public async register(userData: RegisterDto): Promise<RegisterResponseDto> {
-        try{
+        try {
             const dataAccont = await this.usersService.getByAccount(userData.account)
             const cacheUserData = await this.cacheManager.get(`userNew ${userData.email}`)
             // kiểm tra tài khoản đã tồn tại hay chưa
@@ -147,6 +152,7 @@ export class AuthService {
             },
                 HttpStatus.UNPROCESSABLE_ENTITY
             )
+
         } catch (error) {
             if (error instanceof HttpException) {
                 // Nếu là lỗi đã ném ra HttpException, ném lại
@@ -158,7 +164,7 @@ export class AuthService {
                 HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
-        
+
     }
 
     private async generateOtp(length: number) {

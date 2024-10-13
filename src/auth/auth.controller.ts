@@ -2,23 +2,11 @@ import {
   Controller,
   Body,
   Post,
-  HttpCode,
-  Param,
-  Put,
-  UploadedFile,
-  HttpException,
-  HttpStatus,
-  UseInterceptors,
-  ParseFilePipe,
-  ParseFilePipeBuilder,
-  Req,
-  Get,
-  Query,
 } from "@nestjs/common";
 import { RegisterDto, RegisterResponseDto, ConfirmOtpDto, LoginDto } from "./auth.dto";
 import { UserService } from 'src/user/user.service';
 import { AuthService } from "./auth.service";
-import { log } from "console";
+import { SkipAuth } from "src/common/decorate";
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -26,11 +14,13 @@ export class AuthController {
     private readonly authService: AuthService
   ) { }
 
+  @SkipAuth()
   @Post('login')
   async Login(@Body() data: LoginDto) {
     return await this.authService.userLogin(data)
   }
 
+  @SkipAuth()
   @Post('register')
   async register(@Body() data: RegisterDto): Promise<RegisterResponseDto> {
     const userNew = await this.authService.register(data)
@@ -38,6 +28,7 @@ export class AuthController {
     return userNew
   }
 
+  @SkipAuth()
   @Post('verify-otp')
   async confirm(@Body() confirmOtpData: ConfirmOtpDto) {
     return await this.authService.verifyOTP(confirmOtpData)
