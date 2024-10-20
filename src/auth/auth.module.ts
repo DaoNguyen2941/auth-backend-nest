@@ -5,6 +5,7 @@ import { UserModule } from 'src/user/user.module';
 import { MailerModule } from 'src/mailer/mailer.module';
 import { LocalStrategy } from './strategy/local.strategy';
 import { JwtStrategy } from './strategy/jwt.strategy';
+import { JwtRefreshTokenStrategy } from './strategy/jwtRefreshToken.strategy';
 @Module({
   imports: [
     UserModule,
@@ -16,7 +17,8 @@ import { JwtStrategy } from './strategy/jwt.strategy';
   providers: [
     AuthService,
     LocalStrategy,
-    JwtStrategy
+    JwtStrategy,
+    JwtRefreshTokenStrategy
   ]
 })
 export class AuthModule { }

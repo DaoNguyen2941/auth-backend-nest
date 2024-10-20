@@ -1,6 +1,5 @@
 import { registerAs } from "@nestjs/config";
 import { config } from 'dotenv';
-
 config();
 export default registerAs('jwt', () => ({
    tokenSecret: process.env.SECRET_JWT,

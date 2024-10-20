@@ -12,50 +12,55 @@ import { jwtConstants } from './constants';
 import { BasicUserDataDto, userDataDto } from 'src/user/user.dto';
 import { hashData } from 'src/common/utils';
 import { ConfigService } from '@nestjs/config';
+import { createCookie, } from 'src/common/utils';
 @Injectable()
 export class AuthService {
     constructor(
         private readonly usersService: UserService,
         private readonly mailerService: MailerService,
-        private readonly configService: ConfigService,
         private jwtService: JwtService,
         @Inject(CACHE_MANAGER) private cacheManager: Cache
     ) { }
 
-
-    public createAuthCookie(userId: string, account: string) {
-        const payload: JWTPayload = { sub: userId, account: account};
+    public createAuthCookie(userId: string, account: string): string {
+        const payload: JWTPayload = { sub: userId, account: account };
         const token = this.jwtService.sign(payload);
-        return `Authentication=${token}; HttpOnly; Path=/;`;
-      }
+        const cookie = createCookie('Authentication',token,'/',jwtConstants.expirationTimeDefault)
+        return cookie
+    }
 
-    async login(user: userDataDto): Promise<LoginResponseDto> {
-        const payload: JWTPayload = { account: user.account, sub: user.id};
+    public createRefreshCookie(userId: string, account: string) {
+        const payload: JWTPayload = { sub: userId, account: account };
+        const refreshToken = this.jwtService.sign(payload, {
+            expiresIn: `${jwtConstants.expirationTime}s`,
+            secret: jwtConstants.refreshTokenSecret,
+        });
+        const RefreshTokenCookie = createCookie('Refresh',refreshToken,'/auth/refresh',jwtConstants.expirationTime)
         return {
-            access_token: this.jwtService.sign(payload),
-            userData: user
-        };
+            RefreshTokenCookie,
+            refreshToken
+        }
     }
 
     async validateUser(username: string, pass: string): Promise<userDataDto | null> {
-        const userData: BasicUserDataDto = await this.usersService.getByAccount(username)
-        const isPasswordMatching = await bcrypt.compare(
-            pass,
-            userData?.password || 'null'
-        );
-
-        if (userData && isPasswordMatching) {
-            return plainToInstance(userDataDto, userData, {
-                excludeExtraneousValues: true,
-            })
-        }
-        return null;
+            const userData: BasicUserDataDto = await this.usersService.getByAccount(username)
+            const isPasswordMatching = await bcrypt.compare(
+                pass,
+                userData?.password || 'null'
+            );
+    
+            if (userData && isPasswordMatching) {
+                return plainToInstance(userDataDto, userData, {
+                    excludeExtraneousValues: true,
+                })
+            }
+            return null;
     }
 
 
     async verifyOTP(dataOTP: ConfirmOtpDto): Promise<RegisterResponseDto> {
         try {
-            const userNew: RegisterDto |undefined = await this.cacheManager.get(`userNew ${dataOTP.email}`)
+            const userNew: RegisterDto | undefined = await this.cacheManager.get(`userNew ${dataOTP.email}`)
             const userOtp = await this.cacheManager.get(`otp ${dataOTP.email}`)
 
             if (userNew === undefined) {
@@ -119,9 +124,6 @@ export class AuthService {
         try {
             const otp = await this.generateOtp(6);
             await this.cacheManager.set(`otp ${email}`, otp, 300000)
-            const cachOtp = await this.cacheManager.get(`otp ${email}`)
-            console.log(cachOtp);
-
             const text = `Your OTP code is: ${otp}. It will expire after 5 minutes. Please do not share this code with anyone.`;
             return await this.mailerService.sendMail({
                 to: email,

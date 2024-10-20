@@ -1,8 +1,8 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Users } from './user.entity';
 import { Repository, In, Like } from "typeorm";
-import { BasicUserDataDto } from './user.dto';
+import { BasicUserDataDto, userDataDto } from './user.dto';
 import { plainToInstance } from "class-transformer";
 import { RegisterDto } from 'src/auth/auth.dto';
 import { QueryFailedError } from 'typeorm';
@@ -15,13 +15,53 @@ export class UserService {
         private usersRepository: Repository<Users>
     ) { }
 
+    async removeRefreshToken(userId: string) {
+        try {
+            return await this.usersRepository.update(
+                { id: userId },
+                {
+                    refresh_token: null
+                });
+        } catch (error) {
+            throw new HttpException(
+                'Đã xảy ra lỗi không xác định',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
     async setRefreshToken(refreshTokenData: string, userId: string) {
-        const refreshTokenHash = await hashData(refreshTokenData);
-        await this.usersRepository.update(
-            { id: userId },
-            {
-                refresh_token: refreshTokenHash
-            });
+        try {
+            const refreshTokenHash = await hashData(refreshTokenData);
+            await this.usersRepository.update(
+                { id: userId },
+                {
+                    refresh_token: refreshTokenHash
+                });
+        } catch (error) {
+            throw new HttpException(
+                'Đã xảy ra lỗi không xác định',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    async verifyRefreshToken(refreshToken: string, userId: string): Promise<userDataDto | null> {
+        const user = await this.getById(userId);
+        if (!user.refresh_token) {
+            throw new UnauthorizedException();
+        }
+        const isRefreshTokenMatching = await bcrypt.compare(
+            refreshToken,
+            user.refresh_token
+        );
+
+        if (isRefreshTokenMatching) {
+            return plainToInstance(userDataDto, user, {
+                excludeExtraneousValues: true,
+            })
+        }
+        return null
     }
 
     async create(dataUserNew: RegisterDto) {
@@ -61,7 +101,8 @@ export class UserService {
                     id: true,
                     account: true,
                     email: true,
-                    password: true
+                    password: true,
+                    refresh_token: true
                 }
             });
             return plainToInstance(BasicUserDataDto, account, {
@@ -92,7 +133,8 @@ export class UserService {
                     id: true,
                     account: true,
                     email: true,
-                    password: true
+                    password: true,
+                    refresh_token: true
                 }
             });
             return plainToInstance(BasicUserDataDto, account, {

@@ -1,9 +1,9 @@
 
 import { PartialType, OmitType, PickType } from '@nestjs/mapped-types'
 import { Expose, Transform } from 'class-transformer';
-import { IsString, IsEmail, IsInt, IsNotEmpty, isNumber, IsNumber } from 'class-validator';
+import { IsString, IsEmail, IsNotEmpty, isNumber, IsNumber } from 'class-validator';
 import { BasicUserDataDto, userDataDto } from 'src/user/user.dto';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 export class RegisterDto {
 
   @Expose()
@@ -48,7 +48,11 @@ export class JWTDecoded extends JWTPayload {
 
 export class CustomUserInRequest extends Request {
   @Expose()
-  user: userDataDto
+  @IsNotEmpty()
+  user: userDataDto;
+
+  @Expose()
+  res: Response;
 }
 
 export class LoginResponseDto {
@@ -70,5 +74,3 @@ export class ConfirmOtpDto extends PickType(RegisterDto, ['email'] as const) {
   @IsString()
   OTP: string;
 }
-
-export class LoginDto extends OmitType(RegisterDto, ['email'] as const) { }

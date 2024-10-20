@@ -10,7 +10,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './auth/constants';
 import { PassportModule } from '@nestjs/passport';
 import { JwtAuthGuard } from './auth/guard/jwt-auth.guard';
-
+import { UserController } from './user/user.controller';
 @Module({
   imports: [
     UseTypeOrmModule,
@@ -26,7 +26,7 @@ import { JwtAuthGuard } from './auth/guard/jwt-auth.guard';
     JwtModule.register({
       global: true,
       secret: jwtConstants.secret,
-      signOptions: { expiresIn: '900s' },
+      signOptions: { expiresIn: `${jwtConstants.expirationTimeDefault}s` },
     }),
   ],
   controllers: [],

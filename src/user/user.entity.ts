@@ -16,6 +16,6 @@ export class Users extends BaseEntity {
 
   @Column({ type: "varchar",  nullable: true})
   @Exclude()
-  refresh_token: string;
+  refresh_token: string | null;
 
 }
