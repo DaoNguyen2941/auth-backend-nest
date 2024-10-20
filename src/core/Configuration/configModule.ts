@@ -5,7 +5,7 @@ import mailerConfig from './config/mailer.config';
 import jwtConfig from './config/jwt.config';
 
 export const UseConfigModule = ConfigModule.forRoot({
-    load: [databaseConfig, mailerConfig, jwtConfig],
+    load: [jwtConfig ,databaseConfig, mailerConfig, ],
     isGlobal: true,
     cache: true,
     validationSchema: Joi.object({
@@ -23,5 +23,7 @@ export const UseConfigModule = ConfigModule.forRoot({
       EMAIL_PASSWORD: Joi.string().required(),
       //jwt
       SECRET_JWT: Joi.string().required(),
+      JWT_REFRESH_TOKEN_SECRET: Joi.string().required(),
+      JWT_REFRESH_TOKEN_EXPIRATION_TIME: Joi.string().required(),
     })
   })

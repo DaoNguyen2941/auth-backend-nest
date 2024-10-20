@@ -2,22 +2,34 @@ import {
   Controller,
   Body,
   Post,
+  UseGuards,
+  Request,
+  Get
 } from "@nestjs/common";
-import { RegisterDto, RegisterResponseDto, ConfirmOtpDto, LoginDto } from "./auth.dto";
-import { UserService } from 'src/user/user.service';
+import {
+  RegisterDto,
+  RegisterResponseDto,
+  ConfirmOtpDto,
+  CustomUserInRequest,
+  LoginResponseDto,
+  LoginDto
+} from "./auth.dto";
 import { AuthService } from "./auth.service";
 import { SkipAuth } from "src/common/decorate";
+import { LocalAuthGuard } from "./guard/local-auth.guard";
 @Controller('auth')
 export class AuthController {
   constructor(
-    private readonly userService: UserService,
     private readonly authService: AuthService
   ) { }
 
+
   @SkipAuth()
-  @Post('login')
-  async Login(@Body() data: LoginDto) {
-    return await this.authService.userLogin(data)
+  @UseGuards(LocalAuthGuard)
+  @Post('/login')
+  async login2(@Request() req: CustomUserInRequest, @Body() data: LoginDto): Promise<LoginResponseDto> {
+    console.log(req.user);
+    return this.authService.login(req.user);
   }
 
   @SkipAuth()

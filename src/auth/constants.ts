@@ -1,4 +1,9 @@
+import { ConfigService } from '@nestjs/config';
+import { config } from 'dotenv';
+config();
 
 export const jwtConstants = {
-    secret: process.env.SECRET_JWT
+    secret:new ConfigService().get<string>('SECRET_JWT'),
+    expirationTime: new ConfigService().get<string>('jwt.expirationTime'),
+    refreshTokenSecret: new ConfigService().get<string>('jwt.refreshTokenSecret')
   }; 

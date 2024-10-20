@@ -6,13 +6,23 @@ import { BasicUserDataDto } from './user.dto';
 import { plainToInstance } from "class-transformer";
 import { RegisterDto } from 'src/auth/auth.dto';
 import { QueryFailedError } from 'typeorm';
-
+import * as bcrypt from 'bcrypt';
+import { hashData } from 'src/common/utils';
 @Injectable()
 export class UserService {
     constructor(
         @InjectRepository(Users)
         private usersRepository: Repository<Users>
     ) { }
+
+    async setRefreshToken(refreshTokenData: string, userId: string) {
+        const refreshTokenHash = await hashData(refreshTokenData);
+        await this.usersRepository.update(
+            { id: userId },
+            {
+                refresh_token: refreshTokenHash
+            });
+    }
 
     async create(dataUserNew: RegisterDto) {
         try {
@@ -21,11 +31,11 @@ export class UserService {
             return newUser
         } catch (error) {
             // Kiểm tra nếu lỗi là do truy vấn cơ sở dữ liệu
-            if (error instanceof QueryFailedError) {                
+            if (error instanceof QueryFailedError) {
                 // Kiểm tra lỗi cụ thể, lỗi trùng lặp
                 if ((error as any).driverError.errno == '1062') { // 23505 là mã lỗi trùng lặp
                     throw new HttpException(
-                        'Tên ài khoản đã tồn tại hoạc email đã đang ký. Hãy chọn thông tin khác.',
+                        'Tên tài khoản đã tồn tại hoạc email đã đang ký. Hãy chọn thông tin khác.',
                         HttpStatus.CONFLICT
                     );
                 }
@@ -43,7 +53,38 @@ export class UserService {
 
     }
 
-    async getByAccount(accountName: string):Promise<BasicUserDataDto> {
+    async getById(userId: string): Promise<BasicUserDataDto> {
+        try {
+            const account = await this.usersRepository.findOne({
+                where: { id: userId },
+                select: {
+                    id: true,
+                    account: true,
+                    email: true,
+                    password: true
+                }
+            });
+            return plainToInstance(BasicUserDataDto, account, {
+                excludeExtraneousValues: true,
+            })
+
+        } catch (error) {
+            // Kiểm tra nếu lỗi là do truy vấn cơ sở dữ liệu
+            if (error instanceof QueryFailedError) {
+                throw new HttpException(
+                    'Lỗi truy vấn cơ sở dữ liệu',
+                    HttpStatus.INTERNAL_SERVER_ERROR
+                );
+            }
+            // Ném lại các lỗi khác (ví dụ lỗi HttpException)
+            throw new HttpException(
+                'Đã xảy ra lỗi không xác định',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    async getByAccount(accountName: string): Promise<BasicUserDataDto> {
         try {
             const account = await this.usersRepository.findOne({
                 where: { account: accountName },

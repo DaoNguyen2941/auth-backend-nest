@@ -2,44 +2,60 @@ import { Injectable, HttpException, HttpStatus, Inject, UnauthorizedException } 
 import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt';
 import { plainToInstance } from "class-transformer";
-import { RegisterDto, RegisterResponseDto, ConfirmOtpDto, LoginDto } from './auth.dto';
+import { RegisterDto, RegisterResponseDto, ConfirmOtpDto, LoginResponseDto, JWTPayload } from './auth.dto';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import * as crypto from 'crypto'; // Sử dụng để sinh OTP
+import * as crypto from 'crypto';
 import { MailerService } from 'src/mailer/mailer.service';
 import { JwtService } from '@nestjs/jwt';
-import { BasicUserDataDto } from 'src/user/user.dto';
+import { jwtConstants } from './constants';
+import { BasicUserDataDto, userDataDto } from 'src/user/user.dto';
+import { hashData } from 'src/common/utils';
+import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class AuthService {
     constructor(
         private readonly usersService: UserService,
         private readonly mailerService: MailerService,
+        private readonly configService: ConfigService,
         private jwtService: JwtService,
         @Inject(CACHE_MANAGER) private cacheManager: Cache
     ) { }
 
 
-    async userLogin(loginData: LoginDto) {
-        const userData: BasicUserDataDto = await this.usersService.getByAccount(loginData.account)
+    public createAuthCookie(userId: string, account: string) {
+        const payload: JWTPayload = { sub: userId, account: account};
+        const token = this.jwtService.sign(payload);
+        return `Authentication=${token}; HttpOnly; Path=/;`;
+      }
 
-        const isPasswordMatching = await bcrypt.compare(
-            loginData.password,
-            userData?.password || 'null'
-        );
-        if (!isPasswordMatching || userData === null) {
-            throw new UnauthorizedException();
-        }
-        const payload = { sub: userData.id };
-        console.log(process.env.SECRET_JWT);
-        
+    async login(user: userDataDto): Promise<LoginResponseDto> {
+        const payload: JWTPayload = { account: user.account, sub: user.id};
         return {
-            access_token: await this.jwtService.signAsync(payload),
+            access_token: this.jwtService.sign(payload),
+            userData: user
         };
     }
 
+    async validateUser(username: string, pass: string): Promise<userDataDto | null> {
+        const userData: BasicUserDataDto = await this.usersService.getByAccount(username)
+        const isPasswordMatching = await bcrypt.compare(
+            pass,
+            userData?.password || 'null'
+        );
+
+        if (userData && isPasswordMatching) {
+            return plainToInstance(userDataDto, userData, {
+                excludeExtraneousValues: true,
+            })
+        }
+        return null;
+    }
+
+
     async verifyOTP(dataOTP: ConfirmOtpDto): Promise<RegisterResponseDto> {
         try {
-            const userNew: RegisterDto | any = await this.cacheManager.get(`userNew ${dataOTP.email}`)
+            const userNew: RegisterDto |undefined = await this.cacheManager.get(`userNew ${dataOTP.email}`)
             const userOtp = await this.cacheManager.get(`otp ${dataOTP.email}`)
 
             if (userNew === undefined) {
@@ -138,7 +154,7 @@ export class AuthService {
             const cacheUserData = await this.cacheManager.get(`userNew ${userData.email}`)
             // kiểm tra tài khoản đã tồn tại hay chưa
             if (dataAccont === null && cacheUserData === undefined) {
-                userData.password = await this.hashPassword(userData.password)
+                userData.password = await hashData(userData.password)
                 // lưu tạm user vào cache (10p)
                 await this.cacheManager.set(`userNew ${userData.email}`, userData, 600000);
                 return plainToInstance(RegisterResponseDto, userData, {

@@ -20,3 +20,5 @@ export class BasicUserDataDto
     @IsEmail()
     email: string;
   }
+
+  export class userDataDto extends OmitType(BasicUserDataDto, ['password'] as const) { }

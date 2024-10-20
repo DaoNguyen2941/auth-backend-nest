@@ -3,14 +3,20 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UserModule } from 'src/user/user.module';
 import { MailerModule } from 'src/mailer/mailer.module';
-import { jwtConstants } from './constants';
-
+import { LocalStrategy } from './strategy/local.strategy';
+import { JwtStrategy } from './strategy/jwt.strategy';
 @Module({
-  imports: [UserModule,
+  imports: [
+    UserModule,
     MailerModule,
- 
   ],
-  controllers: [AuthController],
-  providers: [AuthService]
+  controllers: [
+    AuthController,
+  ],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    JwtStrategy
+  ]
 })
-export class AuthModule {}
+export class AuthModule { }
