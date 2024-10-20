@@ -1,5 +1,6 @@
 import * as bcrypt from 'bcrypt';
 import { serialize, SerializeOptions } from 'cookie';
+import * as crypto from 'crypto';
 
 export async function hashData(data: string): Promise<string> {
     const saltOrRounds = 10;
@@ -19,3 +20,8 @@ export function createCookie(name: string, value: string, path: string | undefin
     };
     return serialize(name, value, cookieOptions);
   }
+
+
+  export async function generateOtp(length: number) {
+    return crypto.randomBytes(length).toString('hex').slice(0, length);
+}

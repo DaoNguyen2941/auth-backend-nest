@@ -13,6 +13,7 @@ import { BasicUserDataDto, userDataDto } from 'src/user/user.dto';
 import { hashData } from 'src/common/utils';
 import { ConfigService } from '@nestjs/config';
 import { createCookie, } from 'src/common/utils';
+import { generateOtp } from 'src/common/utils';
 @Injectable()
 export class AuthService {
     constructor(
@@ -21,6 +22,10 @@ export class AuthService {
         private jwtService: JwtService,
         @Inject(CACHE_MANAGER) private cacheManager: Cache
     ) { }
+
+    public getOtpResetPassword() {
+        
+    }
 
     public createAuthCookie(userId: string, account: string): string {
         const payload: JWTPayload = { sub: userId, account: account };
@@ -122,7 +127,7 @@ export class AuthService {
 
     public async authGmail(email: string) {
         try {
-            const otp = await this.generateOtp(6);
+            const otp = await generateOtp(6);
             await this.cacheManager.set(`otp ${email}`, otp, 300000)
             const text = `Your OTP code is: ${otp}. It will expire after 5 minutes. Please do not share this code with anyone.`;
             return await this.mailerService.sendMail({
@@ -183,16 +188,5 @@ export class AuthService {
             );
         }
 
-    }
-
-    private async generateOtp(length: number) {
-        return crypto.randomBytes(length).toString('hex').slice(0, length);
-    }
-
-    private async hashPassword(password: string): Promise<string> {
-        const saltOrRounds = 10;
-        const salt = await bcrypt.genSalt(saltOrRounds);
-        const hashPassword = await bcrypt.hash(password, salt);
-        return hashPassword
     }
 }

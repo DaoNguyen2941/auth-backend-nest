@@ -15,6 +15,21 @@ export class UserService {
         private usersRepository: Repository<Users>
     ) { }
 
+    public async findUserByIdentifier(accountOrEmail: string) {
+        const account = await this.usersRepository.findOne({
+            where: [
+                { account: accountOrEmail },
+                { email: accountOrEmail }
+            ],
+            // có thể thêm 1 số thuộc tính tùy chỉnh để người dùng dễ nhận ra tài khoản của mình hơn (avatar, name...)
+            select: {
+                account: true,
+                email:true
+            }
+        })
+        return account
+    }
+
     async removeRefreshToken(userId: string) {
         try {
             return await this.usersRepository.update(

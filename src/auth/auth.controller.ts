@@ -28,6 +28,14 @@ export class AuthController {
     private readonly userService: UserService
   ) { }
 
+
+
+  @SkipAuth()
+  @Get('forgot-password')
+  async forgotPassword() {
+
+  }
+
   @HttpCode(200)
   @Post('/logout')
   async logour(@Request() request: CustomUserInRequest) {

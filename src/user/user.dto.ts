@@ -25,4 +25,10 @@ export class BasicUserDataDto
     refresh_token: string;
   }
 
-  export class userDataDto extends OmitType(BasicUserDataDto, ['password', 'refresh_token'] as const) { }
+  export class userDataDto extends OmitType(BasicUserDataDto, ['password', 'refresh_token'] as const) { };
+
+  export class searchAccountOrEmailDto {
+    @Expose()
+    @IsString()
+    keyword: string;
+  }
