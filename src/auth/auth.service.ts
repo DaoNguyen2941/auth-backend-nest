@@ -2,23 +2,65 @@ import { Injectable, HttpException, HttpStatus, Inject, UnauthorizedException } 
 import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt';
 import { plainToInstance } from "class-transformer";
-import { RegisterDto, RegisterResponseDto, ConfirmOtpDto } from './auth.dto';
+import { RegisterDto, RegisterResponseDto, ConfirmOtpDto, LoginResponseDto, JWTPayload } from './auth.dto';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import * as crypto from 'crypto'; // Sử dụng để sinh OTP
+import * as crypto from 'crypto';
 import { MailerService } from 'src/mailer/mailer.service';
-import { CreateUserDto } from 'src/user/user.dto';
+import { JwtService } from '@nestjs/jwt';
+import { jwtConstants } from './constants';
+import { BasicUserDataDto, userDataDto } from 'src/user/user.dto';
+import { hashData } from 'src/common/utils';
+import { ConfigService } from '@nestjs/config';
+import { createCookie, } from 'src/common/utils';
 @Injectable()
 export class AuthService {
     constructor(
         private readonly usersService: UserService,
         private readonly mailerService: MailerService,
+        private jwtService: JwtService,
         @Inject(CACHE_MANAGER) private cacheManager: Cache
     ) { }
 
+    public createAuthCookie(userId: string, account: string): string {
+        const payload: JWTPayload = { sub: userId, account: account };
+        const token = this.jwtService.sign(payload);
+        const cookie = createCookie('Authentication',token,'/',jwtConstants.expirationTimeDefault)
+        return cookie
+    }
+
+    public createRefreshCookie(userId: string, account: string) {
+        const payload: JWTPayload = { sub: userId, account: account };
+        const refreshToken = this.jwtService.sign(payload, {
+            expiresIn: `${jwtConstants.expirationTime}s`,
+            secret: jwtConstants.refreshTokenSecret,
+        });
+        const RefreshTokenCookie = createCookie('Refresh',refreshToken,'/auth/refresh',jwtConstants.expirationTime)
+        return {
+            RefreshTokenCookie,
+            refreshToken
+        }
+    }
+
+    async validateUser(username: string, pass: string): Promise<userDataDto | null> {
+            const userData: BasicUserDataDto = await this.usersService.getByAccount(username)
+            const isPasswordMatching = await bcrypt.compare(
+                pass,
+                userData?.password || 'null'
+            );
+    
+            if (userData && isPasswordMatching) {
+                return plainToInstance(userDataDto, userData, {
+                    excludeExtraneousValues: true,
+                })
+            }
+            return null;
+    }
+
+
     async verifyOTP(dataOTP: ConfirmOtpDto): Promise<RegisterResponseDto> {
         try {
-            const userNew: RegisterDto | any = await this.cacheManager.get(`userNew ${dataOTP.email}`)
+            const userNew: RegisterDto | undefined = await this.cacheManager.get(`userNew ${dataOTP.email}`)
             const userOtp = await this.cacheManager.get(`otp ${dataOTP.email}`)
 
             if (userNew === undefined) {
@@ -82,9 +124,6 @@ export class AuthService {
         try {
             const otp = await this.generateOtp(6);
             await this.cacheManager.set(`otp ${email}`, otp, 300000)
-            const cachOtp = await this.cacheManager.get(`otp ${email}`)
-            console.log(cachOtp);
-
             const text = `Your OTP code is: ${otp}. It will expire after 5 minutes. Please do not share this code with anyone.`;
             return await this.mailerService.sendMail({
                 to: email,
@@ -112,12 +151,12 @@ export class AuthService {
 
 
     public async register(userData: RegisterDto): Promise<RegisterResponseDto> {
-        try{
+        try {
             const dataAccont = await this.usersService.getByAccount(userData.account)
             const cacheUserData = await this.cacheManager.get(`userNew ${userData.email}`)
             // kiểm tra tài khoản đã tồn tại hay chưa
             if (dataAccont === null && cacheUserData === undefined) {
-                userData.password = await this.hashPassword(userData.password)
+                userData.password = await hashData(userData.password)
                 // lưu tạm user vào cache (10p)
                 await this.cacheManager.set(`userNew ${userData.email}`, userData, 600000);
                 return plainToInstance(RegisterResponseDto, userData, {
@@ -131,6 +170,7 @@ export class AuthService {
             },
                 HttpStatus.UNPROCESSABLE_ENTITY
             )
+
         } catch (error) {
             if (error instanceof HttpException) {
                 // Nếu là lỗi đã ném ra HttpException, ném lại
@@ -142,7 +182,7 @@ export class AuthService {
                 HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
-        
+
     }
 
     private async generateOtp(length: number) {
