@@ -2,10 +2,9 @@ import { ConfigModule } from '@nestjs/config';
 import * as Joi from 'joi';
 import databaseConfig from './config/database.config';
 import mailerConfig from './config/mailer.config';
-import jwtConfig from './config/jwt.config';
 
 export const UseConfigModule = ConfigModule.forRoot({
-    load: [jwtConfig ,databaseConfig, mailerConfig, ],
+    load: [databaseConfig, mailerConfig, ],
     isGlobal: true,
     cache: true,
     validationSchema: Joi.object({
