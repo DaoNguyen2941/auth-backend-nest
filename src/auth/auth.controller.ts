@@ -16,7 +16,7 @@ import {
 
 } from "./auth.dto";
 import { AuthService } from "./auth.service";
-import { SkipAuth } from "src/common/decorate";
+import { SkipAuth } from "src/common/decorate/skipAuth";
 import { LocalAuthGuard } from "./guard/local-auth.guard";
 import JwtRefreshGuard from "./guard/Jwt-Refresh.guard";
 import { UserService } from "src/user/user.service";
@@ -27,14 +27,6 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly userService: UserService
   ) { }
-
-
-
-  @SkipAuth()
-  @Get('forgot-password')
-  async forgotPassword() {
-
-  }
 
   @HttpCode(200)
   @Post('/logout')
@@ -75,7 +67,7 @@ export class AuthController {
   }
 
   @SkipAuth()
-  @Post('register')
+  @Post('/register')
   async register(@Body() data: RegisterDto): Promise<RegisterResponseDto> {
     const userNew = await this.authService.register(data)
     await this.authService.authGmail(data.email)
@@ -83,7 +75,7 @@ export class AuthController {
   }
 
   @SkipAuth()
-  @Post('verify-otp')
+  @Post('/verify-otp')
   async confirm(@Body() confirmOtpData: ConfirmOtpDto) {
     return await this.authService.verifyOTP(confirmOtpData)
   }

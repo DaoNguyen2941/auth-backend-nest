@@ -1,9 +1,9 @@
 
-import { PartialType, OmitType, PickType } from '@nestjs/mapped-types'
-import { Expose, Transform } from 'class-transformer';
-import { IsString, IsEmail, IsNotEmpty, isNumber, IsNumber } from 'class-validator';
-import { BasicUserDataDto, userDataDto } from 'src/user/user.dto';
-import { Request, Response } from 'express';
+import { OmitType, PickType } from '@nestjs/mapped-types'
+import { Expose} from 'class-transformer';
+import { IsString, IsEmail, IsNotEmpty, IsNumber } from 'class-validator';
+import { userDataDto } from 'src/user/user.dto';
+import { Response } from 'express';
 export class RegisterDto {
 
   @Expose()

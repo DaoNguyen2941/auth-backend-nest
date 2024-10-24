@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column } from 'typeorm';
 import { Exclude } from "class-transformer";
 
 import { BaseEntity } from 'src/common/base.entity';

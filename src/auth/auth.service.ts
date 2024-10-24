@@ -1,17 +1,15 @@
-import { Injectable, HttpException, HttpStatus, Inject, UnauthorizedException } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Inject } from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt';
 import { plainToInstance } from "class-transformer";
-import { RegisterDto, RegisterResponseDto, ConfirmOtpDto, LoginResponseDto, JWTPayload } from './auth.dto';
+import { RegisterDto, RegisterResponseDto, ConfirmOtpDto, JWTPayload } from './auth.dto';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import * as crypto from 'crypto';
 import { MailerService } from 'src/mailer/mailer.service';
 import { JwtService } from '@nestjs/jwt';
 import { jwtConstants } from './constants';
 import { BasicUserDataDto, userDataDto } from 'src/user/user.dto';
 import { hashData } from 'src/common/utils';
-import { ConfigService } from '@nestjs/config';
 import { createCookie, } from 'src/common/utils';
 import { generateOtp } from 'src/common/utils';
 @Injectable()
@@ -23,9 +21,6 @@ export class AuthService {
         @Inject(CACHE_MANAGER) private cacheManager: Cache
     ) { }
 
-    public getOtpResetPassword() {
-        
-    }
 
     public createAuthCookie(userId: string, account: string): string {
         const payload: JWTPayload = { sub: userId, account: account };
@@ -61,7 +56,6 @@ export class AuthService {
             }
             return null;
     }
-
 
     async verifyOTP(dataOTP: ConfirmOtpDto): Promise<RegisterResponseDto> {
         try {
